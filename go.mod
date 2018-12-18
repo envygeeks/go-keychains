@@ -1,4 +1,4 @@
-module github.com/envygeeks/keychains
+module github.com/envygeeks/go-keychains
 
 require (
 	github.com/keybase/go-keychain v0.0.0-20181011010623-f1daa725cce4
