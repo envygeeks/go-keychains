@@ -2,10 +2,40 @@ package keychain
 
 import (
 	"os/user"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+/**
+ */
+type TestService struct {
+	Key   string
+	Label string
+	Group string
+	Lc    string
+	Lv    string
+}
+
+func (t *TestService) Get() (string, error) { t.Lc = "get"; return "", nil }
+func (t *TestService) Set(s string) error   { t.Lc, t.Lv = "set", s; return nil }
+func (t *TestService) Del() error           { t.Lc = "del"; return nil }
+func NewForTest(key, label, group string) Item {
+	return &TestService{
+		Group: group,
+		Label: label,
+		Key:   key,
+	}
+}
+
+func init() {
+	keychains[runtime.GOOS] = NewForTest
+	supported = append(supported,
+		runtime.GOOS)
+}
+
+// --
 
 func TestUser(t *testing.T) {
 	u, _ := user.Current()
