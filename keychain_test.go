@@ -11,16 +11,14 @@ import (
 /**
  */
 type TestService struct {
-	Key   string
 	Label string
 	Group string
-	Lc    string
-	Lv    string
+	Key   string
 }
 
-func (t *TestService) Get() (string, error) { t.Lc = "get"; return "", nil }
-func (t *TestService) Set(s string) error   { t.Lc, t.Lv = "set", s; return nil }
-func (t *TestService) Del() error           { t.Lc = "del"; return nil }
+func (t *TestService) Set(s string) error   { return nil }
+func (t *TestService) Get() (string, error) { return "", nil }
+func (t *TestService) Del() error           { return nil }
 func NewForTest(key, label, group string) Item {
 	return &TestService{
 		Group: group,
@@ -57,6 +55,7 @@ func TestUser(t *testing.T) {
 }
 
 func TestKtl(t *testing.T) {
+	s := New("tests.example.test", "tests.group.example.tests")
 	type TestStruct struct {
 		expected    string
 		description string
@@ -80,37 +79,33 @@ func TestKtl(t *testing.T) {
 			expected:    "Hello World",
 		},
 	} {
-		a := ktl(ts.actual)
+		a := s.ktl(ts.actual)
 		assert.Equal(t, ts.expected, a,
 			ts.description)
 	}
 }
 
-func TestTol(t *testing.T) {
+func TestTok(t *testing.T) {
+	s := New("tests.example.test", "tests.group.example.tests")
 	type TestStruct struct {
 		expected    string
 		description string
 		actual      string
-		error       bool
 	}
 
 	for _, ts := range []TestStruct{
 		TestStruct{
 			actual:      "Hello World",
 			description: "it should error if it has a space",
-			expected:    "",
-			error:       true,
+			expected:    "Hello World.tests.example.test",
 		},
 		TestStruct{
 			description: "it should work",
-			expected:    "hello-world.example.test",
+			expected:    "hello-world.tests.example.test",
 			actual:      "hello-world",
 		},
 	} {
-		a, err := tol(ts.actual, "example.test")
+		a := s.tok(ts.actual)
 		assert.Equal(t, ts.expected, a)
-		if ts.error {
-			assert.Error(t, err, ts.description)
-		}
 	}
 }
