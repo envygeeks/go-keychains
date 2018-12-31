@@ -36,6 +36,7 @@ func NewForMacOS(key, label, group string) Item {
 	m := "created new keychain item"
 	logrus.WithFields(logrus.Fields{
 		"label": label,
+		"group": group,
 		"key":   key,
 	}).Debug(m)
 
