@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/user"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -53,23 +54,30 @@ type Item interface {
 	Del() error
 }
 
+var (
+	ErrUnsupportedOS = errors.New("unsupported OS, no keychain")
+	ErrNoKeychainFnd = errors.New("no keychain found")
+)
+
 // NewItem creates a new Item
 func (s *Service) NewItem(k string) (Item, error) {
+	var (
+		err error
+		l   string
+	)
+
 	if !Supported() {
-		err := errors.New("unsupported OS, no keychain")
-		return nil, err
-	}
-
-	if f, ok := keychains[runtime.GOOS]; ok {
-		l, err := tol(k, s.domain)
-		if err != nil {
-			return nil, err
+		err = ErrUnsupportedOS
+		goto fail
+	} else {
+		if f, ok := keychains[runtime.GOOS]; ok {
+			l, err = tol(k, s.domain)
+			if err == nil {
+				return f(k, l, s.group), nil
+			}
 		}
-
-		return f(k, l, s.group), nil
 	}
-
-	err := errors.New("no keychain found")
+fail:
 	return nil, err
 }
 
@@ -123,6 +131,45 @@ func (s *Service) Get(k string) (string, error) {
 	}
 
 	return i.Get()
+}
+
+// String → `Get()`
+func (s *Service) String(k string) (string, error) {
+	return s.Get(k)
+}
+
+// Int → `Get()`
+func (s *Service) Int(k string) (int, error) {
+	var i int
+
+	ss, err := s.String(k)
+	if err != nil {
+		goto fail
+	}
+
+	i, err = strconv.Atoi(ss)
+	if err == nil {
+		return i, nil
+	}
+fail:
+	return 0, err
+}
+
+// Bool → `Get()`
+func (s *Service) Bool(k string) (bool, error) {
+	var b bool
+
+	ss, err := s.String(k)
+	if err != nil {
+		goto fail
+	}
+
+	b, err = strconv.ParseBool(ss)
+	if err == nil {
+		return b, nil
+	}
+fail:
+	return false, err
 }
 
 // Del → `NewItem()` → `Del()`

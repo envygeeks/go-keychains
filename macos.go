@@ -51,8 +51,8 @@ func init() {
 }
 
 // Del the item
-func (t *MacOS) Del() error {
-	err := macos.DeleteItem(t.item)
+func (m *MacOS) Del() error {
+	err := macos.DeleteItem(m.item)
 	if err != nil {
 		return err
 	}
@@ -61,15 +61,15 @@ func (t *MacOS) Del() error {
 }
 
 // Set the item'
-func (t *MacOS) Set(s string) error {
+func (m *MacOS) Set(s string) error {
 	var err error
 
-	t.item.SetData([]byte(s))
-	err = macos.AddItem(t.item)
+	m.item.SetData([]byte(s))
+	err = macos.AddItem(m.item)
 	if err == macos.ErrorDuplicateItem {
-		err = t.Del()
+		err = m.Del()
 		if err == nil {
-			err = macos.AddItem(t.item)
+			err = macos.AddItem(m.item)
 		}
 	}
 
@@ -77,9 +77,9 @@ func (t *MacOS) Set(s string) error {
 }
 
 // Get the item
-func (t *MacOS) Get() (string, error) {
-	t.item.SetReturnData(true)
-	r, err := macos.QueryItem(t.item)
+func (m *MacOS) Get() (string, error) {
+	m.item.SetReturnData(true)
+	r, err := macos.QueryItem(m.item)
 	if err != nil {
 		return "", nil
 	}
