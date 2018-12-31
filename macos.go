@@ -19,6 +19,9 @@ type MacOS struct {
 }
 
 // NewForMacOS creates a new macOS item
+// where `Label` should be something like "This is a label",
+// and `Key` should be something like "this-is-a-key.app.tld.domain",
+// and `Group` should be like "app.group.tld.domain"
 func NewForMacOS(key, label, group string) Item {
 	i := macos.NewItem()
 

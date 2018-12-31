@@ -71,7 +71,7 @@ func (s *Service) NewItem(k string) (Item, error) {
 		goto fail
 	} else {
 		if f, ok := keychains[runtime.GOOS]; ok {
-			l, err = tol(k, s.domain)
+			l, k = s.ktl(k), s.tok(k)
 			if err == nil {
 				return f(k, l, s.group), nil
 			}
@@ -96,21 +96,15 @@ func New(domain, group string) *Service {
 	}
 }
 
-// ktl will convert "this-is-the-label" to
-// "This is the label" for label use
-func ktl(s string) string {
+// ktl will convert "this-is-the-key" to
+// "This is the key" for label use
+func (Service) ktl(s string) string {
 	return strings.Title(strings.Replace(s, "-", " ", -1))
 }
 
-// tol converts a key to a label
-func tol(k, domain string) (string, error) {
-	if strings.Contains(k, " ") {
-		err := errors.New("key cannot be a label")
-		return "", err
-	}
-
-	l := fmt.Sprintf("%s.%s", k, domain)
-	return l, nil
+// tok attaches the domain to the key
+func (s *Service) tok(k string) string {
+	return fmt.Sprintf("%s.%s", k, s.domain)
 }
 
 // Set → `NewItem()` → `Set()`
@@ -133,16 +127,11 @@ func (s *Service) Get(k string) (string, error) {
 	return i.Get()
 }
 
-// String → `Get()`
-func (s *Service) String(k string) (string, error) {
-	return s.Get(k)
-}
-
 // Int → `Get()`
 func (s *Service) Int(k string) (int, error) {
 	var i int
 
-	ss, err := s.String(k)
+	ss, err := s.Get(k)
 	if err != nil {
 		goto fail
 	}
@@ -159,7 +148,7 @@ fail:
 func (s *Service) Bool(k string) (bool, error) {
 	var b bool
 
-	ss, err := s.String(k)
+	ss, err := s.Get(k)
 	if err != nil {
 		goto fail
 	}
