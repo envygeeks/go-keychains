@@ -85,7 +85,7 @@ func (m *MacOS) Get() (string, error) {
 	m.item.SetReturnData(true)
 	r, err := macos.QueryItem(m.item)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	s := string(r[0].Data)
