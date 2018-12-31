@@ -88,6 +88,10 @@ func (m *MacOS) Get() (string, error) {
 		return "", err
 	}
 
-	s := string(r[0].Data)
-	return s, nil
+	if len(r) > 0 {
+		s := string(r[0].Data)
+		return s, nil
+	}
+
+	return "", ErrKeyNotFound
 }

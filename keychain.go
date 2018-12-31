@@ -55,6 +55,7 @@ type Item interface {
 }
 
 var (
+	ErrKeyNotFound   = errors.New("key not found")
 	ErrUnsupportedOS = errors.New("unsupported OS, no keychain")
 	ErrNoKeychainFnd = errors.New("no keychain found")
 )
