@@ -19,33 +19,33 @@ type MacOS struct {
 }
 
 // NewForMacOS creates a new macOS item
-func NewForMacOS(key, lab string) Item {
+func NewForMacOS(key, label, group string) Item {
 	i := macos.NewItem()
 
 	i.SetService(key)
 	i.SetSynchronizable(macos.SynchronizableNo)
 	i.SetAccessible(macos.AccessibleWhenUnlocked)
 	i.SetSecClass(macos.SecClassGenericPassword)
-	i.SetAccessGroup(AccessGroup)
+	i.SetAccessGroup(group)
 	i.SetAccount(User())
-	i.SetLabel(lab)
+	i.SetLabel(label)
 
 	m := "created new keychain item"
 	logrus.WithFields(logrus.Fields{
-		"key": key,
-		"lab": lab,
+		"label": label,
+		"key":   key,
 	}).Debug(m)
 
 	return &MacOS{
 		item:  i,
-		Label: lab,
+		Label: label,
 		User:  User(),
 		Key:   key,
 	}
 }
 
 func init() {
-	wrappers["darwin"] = NewForMacOS
+	keychains["darwin"] = NewForMacOS
 	supported = append(supported,
 		"darwin")
 }
@@ -84,5 +84,6 @@ func (t *MacOS) Get() (string, error) {
 		return "", nil
 	}
 
-	return string(r[0].Data), nil
+	s := string(r[0].Data)
+	return s, nil
 }

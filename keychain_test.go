@@ -1,42 +1,32 @@
 package keychain
 
 import (
+	"os/user"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLabelToKey(t *testing.T) {
+func TestUser(t *testing.T) {
+	u, _ := user.Current()
 	type TestStruct struct {
-		expected    string
 		description string
-		actual      string
+		expected    string
 	}
 
 	for _, ts := range []TestStruct{
 		TestStruct{
-			actual:      "hello-world",
-			description: "it works for hello-world",
-			expected:    "hello-world",
-		},
-		TestStruct{
-			actual:      "hello world",
-			description: "it works for hello world",
-			expected:    "hello-world",
-		},
-		TestStruct{
-			actual:      "Hello World",
-			description: "it works for Hello World",
-			expected:    "hello-world",
+			description: "it gives the user",
+			expected:    u.Username,
 		},
 	} {
-		a := LabelToKey(ts.actual)
+		a := User()
 		assert.Equal(t, ts.expected, a,
 			ts.description)
 	}
 }
 
-func TestKeyToLabel(t *testing.T) {
+func TestKtl(t *testing.T) {
 	type TestStruct struct {
 		expected    string
 		description string
@@ -60,8 +50,37 @@ func TestKeyToLabel(t *testing.T) {
 			expected:    "Hello World",
 		},
 	} {
-		a := KeyToLabel(ts.actual)
+		a := ktl(ts.actual)
 		assert.Equal(t, ts.expected, a,
 			ts.description)
+	}
+}
+
+func TestTol(t *testing.T) {
+	type TestStruct struct {
+		expected    string
+		description string
+		actual      string
+		error       bool
+	}
+
+	for _, ts := range []TestStruct{
+		TestStruct{
+			actual:      "Hello World",
+			description: "it should error if it has a space",
+			expected:    "",
+			error:       true,
+		},
+		TestStruct{
+			description: "it should work",
+			expected:    "hello-world.example.test",
+			actual:      "hello-world",
+		},
+	} {
+		a, err := tol(ts.actual, "example.test")
+		assert.Equal(t, ts.expected, a)
+		if ts.error {
+			assert.Error(t, err, ts.description)
+		}
 	}
 }

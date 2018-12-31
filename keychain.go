@@ -1,31 +1,39 @@
 package keychain
 
 import (
-	"regexp"
+	"errors"
+	"fmt"
+	"os/user"
 	"runtime"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
+// Func Provides an interface to service functions
+// where (string, string, string) should be the available
+// key, label, and group to be passed upstream
+type Func func(string, string, string) Item
+
+/**
+ */
 var (
-	wrappers          = map[string](func(string, string) Item){}
-	AccessGroup       = "tweedy.group.io.envygeeks"
-	ServiceNameSuffix = "tweedy.io.envygeeks"
-	ServicePrefix     = "twitter-"
-	supported         = []string{}
+	keychains = map[string]Func{}
+	supported = []string{}
 )
 
-// Item is an interface to all of the
-// possible keychain wrappers we can create
-// in the future, such as CredentialStore,
-// Keychain and on Linux: dbus junk.
-type Item interface {
-	Set(string) error
-	Get() (string, error)
-	Del() error
+// User gets the current user
+func User() string {
+	u, err := user.Current()
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+
+	s := u.Username
+	return s
 }
 
+// Supported : valid service?
 func Supported() bool {
 	for _, s := range supported {
 		if runtime.GOOS == s {
@@ -36,40 +44,93 @@ func Supported() bool {
 	return false
 }
 
-// LabelToKey will convert "This is the label"
-// to "this-is-the-label" for use as a key
-func LabelToKey(s string) string {
-	s = strings.ToLower(s)
-	r, _ := regexp.Compile(`\s+`)
-	b := r.ReplaceAll([]byte(s), []byte("-"))
-	return string(b)
+// Item is an interface to a wrapper
+// Exp MacOSKeychainItem, WindowsCredentialItem
+// LinuxKeychainItem, KWalletItem
+type Item interface {
+	Set(string) error
+	Get() (string, error)
+	Del() error
 }
 
-// KeyToLabel will convert "this-is-the-label"
-// to "This is the label" for label use
-func KeyToLabel(s string) string {
+// NewItem creates a new Item
+func (s *Service) NewItem(k string) (Item, error) {
+	if !Supported() {
+		err := errors.New("unsupported OS, no keychain")
+		return nil, err
+	}
+
+	if f, ok := keychains[runtime.GOOS]; ok {
+		l, err := tol(k, s.domain)
+		if err != nil {
+			return nil, err
+		}
+
+		return f(k, l, s.group), nil
+	}
+
+	err := errors.New("no keychain found")
+	return nil, err
+}
+
+// Service is a service wrapper
+// `domain` example: `app.tld.domain`
+// `group`: app.group.tld.domain, or otherwise
+//   ↳ can also be a proper system group
+type Service struct {
+	domain, group string
+}
+
+// New is a new Keychain
+func New(domain, group string) *Service {
+	return &Service{
+		domain, group,
+	}
+}
+
+// ktl will convert "this-is-the-label" to
+// "This is the label" for label use
+func ktl(s string) string {
 	return strings.Title(strings.Replace(s, "-", " ", -1))
 }
 
-// New creates a new Item so you can `Get`,
-// `Set`, or `Delete` said item. You can optionally
-// skip this and just do `keychain.Get`, `Set`
-// and `Delete`, this should normally only
-// be used for persistent actions
-func New(key string, label string) Item {
-	if !Supported() {
-		logrus.Fatalln("unsupported keychain OS")
-	} else {
-		if f, ok := wrappers[runtime.GOOS]; ok {
-			i := f(key, label)
-			return i
-		}
+// tol converts a key to a label
+func tol(k, domain string) (string, error) {
+	if strings.Contains(k, " ") {
+		err := errors.New("key cannot be a label")
+		return "", err
 	}
 
-	return nil
+	l := fmt.Sprintf("%s.%s", k, domain)
+	return l, nil
 }
 
-// Get, Set, Del wraps around `New()` → `Get()`, `Set()`, `Del()`
-func Set(k, s string) error        { return New(k, KeyToLabel(k)).Set(s) }
-func Get(k string) (string, error) { return New(k, KeyToLabel(k)).Get() }
-func Del(k string) error           { return New(k, KeyToLabel(k)).Del() }
+// Set → `NewItem()` → `Set()`
+func (s *Service) Set(k, v string) error {
+	i, err := s.NewItem(k)
+	if err != nil {
+		return err
+	}
+
+	return i.Set(v)
+}
+
+// Get → `NewItem()`  → `Get()`
+func (s *Service) Get(k string) (string, error) {
+	i, err := s.NewItem(k)
+	if err != nil {
+		return "", err
+	}
+
+	return i.Get()
+}
+
+// Del → `NewItem()` → `Del()`
+func (s *Service) Del(k string) error {
+	i, err := s.NewItem(k)
+	if err != nil {
+		return err
+	}
+
+	return i.Del()
+}
